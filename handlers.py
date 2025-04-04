@@ -3,27 +3,23 @@ from telegram.ext import CallbackContext
 from telegram.error import BadRequest
 from add_members import execute_vodafone_operations
 from accept_requests import execute_accept_requests
-from break_percentage import execute_break_percentage
-
+from break_percentage import execute_break_percentage, load_user_success_data
 import json
+import time
 
-# دالة لقراءة قائمة المسموح لهم من الملف
 def load_allowed_chat_ids():
     try:
         with open('allowed_users.json', 'r') as file:
             return json.load(file)
     except FileNotFoundError:
-        return [1186288828]  # قائمة افتراضية تحتوي على chat_id بتاعك بس
+        return [1186288828]
 
-# دالة لحفظ قائمة المسموح لهم في الملف
 def save_allowed_chat_ids(chat_ids):
     with open('allowed_users.json', 'w') as file:
         json.dump(chat_ids, file)
 
-ALLOWED_CHAT_IDS = load_allowed_chat_ids()  # قائمة المسموح لهم باستخدام "كسر النسبة"
-
-# ضع chat_id بتاعك هنا كإدمن أساسي
-ADMIN_CHAT_ID = 1186288828  # استبدل الرقم ده بـ chat_id بتاعك الحقيقي
+ALLOWED_CHAT_IDS = load_allowed_chat_ids()
+ADMIN_CHAT_ID = 1186288828
 
 async def start(update: Update, context: CallbackContext) -> None:
     keyboard = [
@@ -78,8 +74,8 @@ async def button(update: Update, context: CallbackContext) -> None:
         await query.edit_message_text(text="📞 ابعتلي رقم فودافون بتاع صاحب العيلة يا معلم!")
 
     elif query.data == "break_percentage":
-        chat_id = query.from_user.id  # chat_id بتاع المستخدم
-        ALLOWED_CHAT_IDS = load_allowed_chat_ids()  # تحديث القائمة من الملف في كل مرة
+        chat_id = query.from_user.id
+        ALLOWED_CHAT_IDS = load_allowed_chat_ids()
         if chat_id not in ALLOWED_CHAT_IDS:
             await query.edit_message_text(
                 text="❌ عذرًا، مش مسموح لك تستخدم خاصية كسر النسبة! تواصل مع صاحب البوت لو عايز إذن. 🚫"
@@ -125,7 +121,6 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
     user_input = update.message.text
     user_data = context.user_data
 
-    # لإضافة الأفراد (بس باسورد صاحب العيلة)
     if user_data.get('step') == 'family_owners_number':
         if not user_input.isdigit() or len(user_input) != 11:
             await update.message.reply_text("⚠️ الرقم غير صحيح! يرجى إدخال رقم فودافون صحيح مكون من 11 رقم")
@@ -182,7 +177,6 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
 
         results = await execute_vodafone_operations(user_data.copy(), context)
 
-        # التحقق من نتيجة إضافة الفرد الأول
         if "add_result1" in results:
             if "error" in results["add_result1"]:
                 await context.bot.send_message(
@@ -200,7 +194,6 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
                 text="❌ حصل خطأ غير متوقع أثناء إضافة الفرد الأول!"
             )
 
-        # التحقق من نتيجة إضافة الفرد الثاني
         if "add_result2" in results:
             if "error" in results["add_result2"]:
                 await context.bot.send_message(
@@ -221,7 +214,6 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
         user_data.clear()
         return
 
-    # لقبول الطلبات (باسورد لكل فرد بما فيهم member0)
     if user_data.get('step') == 'family_owners_number_accept':
         if not user_input.isdigit() or len(user_input) != 11:
             await update.message.reply_text("⚠️ الرقم غير صحيح! يرجى إدخال رقم فودافون صحيح مكون من 11 رقم")
@@ -326,7 +318,6 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
         user_data.clear()
         return
 
-    # لكسر النسبة (بدون member0)
     if user_data.get('step') == 'family_owners_number_break':
         if not user_input.isdigit() or len(user_input) != 11:
             await update.message.reply_text("⚠️ الرقم غير صحيح! يرجى إدخال رقم فودافون صحيح مكون من 11 رقم")
@@ -428,12 +419,12 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
 
 async def allow_user(update: Update, context: CallbackContext) -> None:
     chat_id = update.effective_chat.id
-    if chat_id != ADMIN_CHAT_ID:  # فقط الإدمن الأساسي (أنت) يقدر يستخدم الأمر
+    if chat_id != ADMIN_CHAT_ID:
         await update.message.reply_text("❌ مش مسموح لك تستخدم الأمر ده! الإدمن الأساسي بس هو المسموح.")
         return
     
     try:
-        user_to_allow = int(context.args[0])  # chat_id اللي عايز تضيفه
+        user_to_allow = int(context.args[0])
         current_allowed = load_allowed_chat_ids()
         if user_to_allow not in current_allowed:
             current_allowed.append(user_to_allow)
@@ -446,12 +437,12 @@ async def allow_user(update: Update, context: CallbackContext) -> None:
 
 async def disallow_user(update: Update, context: CallbackContext) -> None:
     chat_id = update.effective_chat.id
-    if chat_id != ADMIN_CHAT_ID:  # فقط الإدمن الأساسي (أنت) يقدر يستخدم الأمر
+    if chat_id != ADMIN_CHAT_ID:
         await update.message.reply_text("❌ مش مسموح لك تستخدم الأمر ده! الإدمن الأساسي بس هو المسموح.")
         return
     
     try:
-        user_to_disallow = int(context.args[0])  # chat_id اللي عايز تشيله
+        user_to_disallow = int(context.args[0])
         current_allowed = load_allowed_chat_ids()
         if user_to_disallow in current_allowed:
             current_allowed.remove(user_to_disallow)
@@ -461,3 +452,25 @@ async def disallow_user(update: Update, context: CallbackContext) -> None:
             await update.message.reply_text("⚠️ المستخدم ده مش موجود في القائمة!")
     except (IndexError, ValueError):
         await update.message.reply_text("⚠️ استخدم الأمر صح: /disallow <chat_id>")
+
+async def report(update: Update, context: CallbackContext) -> None:
+    chat_id = update.effective_chat.id
+    if chat_id != ADMIN_CHAT_ID:
+        await update.message.reply_text("❌ الأمر ده للإدمن الأساسي بس!")
+        return
+    
+    user_data_store = load_user_success_data()
+    if not user_data_store:
+        await update.message.reply_text("📊 مفيش بيانات مسجلة لأي يوزر لسه!")
+        return
+
+    report_message = "📊 تقرير كسر الأرقام:\n\n"
+    current_date = time.strftime("%Y-%m-%d")
+    for user_id, dates in user_data_store.items():
+        if current_date in dates:
+            success_count = dates[current_date]
+            report_message += f"👤 اليوزر {user_id}: كسر {success_count} رقم اليوم ({current_date})\n"
+        else:
+            report_message += f"👤 اليوزر {user_id}: مفيش عمليات ناجحة اليوم ({current_date})\n"
+    
+    await update.message.reply_text(report_message)
