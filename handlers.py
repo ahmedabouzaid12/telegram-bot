@@ -5,6 +5,26 @@ from add_members import execute_vodafone_operations
 from accept_requests import execute_accept_requests
 from break_percentage import execute_break_percentage
 
+import json
+
+# دالة لقراءة قائمة المسموح لهم من الملف
+def load_allowed_chat_ids():
+    try:
+        with open('allowed_users.json', 'r') as file:
+            return json.load(file)
+    except FileNotFoundError:
+        return [1186288828]  # قائمة افتراضية تحتوي على chat_id بتاعك بس
+
+# دالة لحفظ قائمة المسموح لهم في الملف
+def save_allowed_chat_ids(chat_ids):
+    with open('allowed_users.json', 'w') as file:
+        json.dump(chat_ids, file)
+
+ALLOWED_CHAT_IDS = load_allowed_chat_ids()  # قائمة المسموح لهم باستخدام "كسر النسبة"
+
+# ضع chat_id بتاعك هنا كإدمن أساسي
+ADMIN_CHAT_ID = 1186288828  # استبدل الرقم ده بـ chat_id بتاعك الحقيقي
+
 async def start(update: Update, context: CallbackContext) -> None:
     keyboard = [
         [InlineKeyboardButton("🟠 أورانج", callback_data='orange')],
@@ -58,6 +78,13 @@ async def button(update: Update, context: CallbackContext) -> None:
         await query.edit_message_text(text="📞 ابعتلي رقم فودافون بتاع صاحب العيلة يا معلم!")
 
     elif query.data == "break_percentage":
+        chat_id = query.from_user.id  # chat_id بتاع المستخدم
+        ALLOWED_CHAT_IDS = load_allowed_chat_ids()  # تحديث القائمة من الملف في كل مرة
+        if chat_id not in ALLOWED_CHAT_IDS:
+            await query.edit_message_text(
+                text="❌ عذرًا، مش مسموح لك تستخدم خاصية كسر النسبة! تواصل مع صاحب البوت لو عايز إذن. 🚫"
+            )
+            return
         context.user_data['step'] = 'family_owners_number_break'
         await query.edit_message_text(text="📞 ابعتلي رقم فودافون بتاع صاحب العيلة يا معلم!")
 
@@ -134,8 +161,6 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
         user_data['step'] = 'member2'
         await update.message.reply_text("📳 ابعتلي رقم الفرد التاني اللي عايز تضيفه للعيلة يا معلم!")
         return
-
-    
 
     if user_data.get('step') == 'member2':
         if not user_input.isdigit() or len(user_input) != 11:
@@ -301,7 +326,7 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
         user_data.clear()
         return
 
-    # لكسر النسبة (باسورد لكل فرد)
+    # لكسر النسبة (بدون member0)
     if user_data.get('step') == 'family_owners_number_break':
         if not user_input.isdigit() or len(user_input) != 11:
             await update.message.reply_text("⚠️ الرقم غير صحيح! يرجى إدخال رقم فودافون صحيح مكون من 11 رقم")
@@ -316,26 +341,8 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
             await update.message.reply_text("⚠️ الباسورد لا يمكن أن يكون فارغًا!")
             return
         user_data['family_owners_password'] = user_input
-        user_data['step'] = 'member0_break'
-        await update.message.reply_text("📱 ابعتلي رقم الفرد المضاف في العيلة مسبقًا يا كبير!")
-        return
-
-    if user_data.get('step') == 'member0_break':
-        if not user_input.isdigit() or len(user_input) != 11:
-            await update.message.reply_text("⚠️ الرقم غير صحيح! يرجى إدخال رقم فودافون صحيح مكون من 11 رقم")
-            return
-        user_data['member0'] = user_input
-        user_data['step'] = 'member0_password_break'
-        await update.message.reply_text("🔐 ابعتلي باسورد الفرد المضاف مسبقًا يا نجم!")
-        return
-
-    if user_data.get('step') == 'member0_password_break':
-        if not user_input:
-            await update.message.reply_text("⚠️ الباسورد لا يمكن أن يكون فارغًا!")
-            return
-        user_data['member0_password'] = user_input
         user_data['step'] = 'member1_break'
-        await update.message.reply_text("📲 ابعتلي رقم الفرد الأول اللي عايز تكسر نسبته يا نجم!")
+        await update.message.reply_text("📲 ابعتلي رقم الفرد الأول يا نجم!")
         return
 
     if user_data.get('step') == 'member1_break':
@@ -353,7 +360,7 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
             return
         user_data['member1_password'] = user_input
         user_data['step'] = 'member2_break'
-        await update.message.reply_text("📳 ابعتلي رقم الفرد التاني اللي عايز تكسر نسبته يا معلم!")
+        await update.message.reply_text("📳 ابعتلي رقم الفرد التاني  يا معلم!")
         return
 
     if user_data.get('step') == 'member2_break':
@@ -365,18 +372,17 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
         await update.message.reply_text("🔐 ابعتلي باسورد الفرد التاني يا ريس!")
         return
 
-
     if user_data.get('step') == 'member2_password_break':
         if not user_input:
             await update.message.reply_text("⚠️ الباسورد لا يمكن أن يكون فارغًا!")
             return
         user_data['member2_password'] = user_input
-        user_data['step'] = 'attempts_input'  # خطوة جديدة لإدخال عدد المحاولات
+        user_data['step'] = 'attempts_input'
         await update.message.reply_text("🔄 كم عدد المحاولات اللي عايز تجربها؟ (الافتراضي: 30)")
+        return
 
     if user_data.get('step') == 'attempts_input':
         try:
-            # إذا المستخدم ما دخلش رقم، نستخدم القيمة الافتراضية 30
             attempts = int(user_input) if user_input.strip() else 30
             if attempts <= 0:
                 await update.message.reply_text("⚠️ عدد المحاولات لازم يكون أكبر من صفر!")
@@ -390,8 +396,6 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
             f"✅ تمام يا ريس! البيانات اللي دخلتها:\n"
             f"📞 رقم رب العيلة: {user_data['family_owners_number']}\n"
             f"🔐 باسورد رب العيلة: {user_data['family_owners_password']}\n"
-            f"📱 الفرد المضاف مسبقًا: {user_data['member0']}\n"
-            f"🔐 باسورد الفرد المضاف: {user_data['member0_password']}\n"
             f"📲 الفرد الأول: {user_data['member1']}\n"
             f"🔐 باسورد الفرد الأول: {user_data['member1_password']}\n"
             f"📳 الفرد التاني: {user_data['member2']}\n"
@@ -422,4 +426,38 @@ async def handle_message(update: Update, context: CallbackContext) -> None:
         user_data.clear()
         return
 
-# ... (بقية الكود تبقى كما هي)
+async def allow_user(update: Update, context: CallbackContext) -> None:
+    chat_id = update.effective_chat.id
+    if chat_id != ADMIN_CHAT_ID:  # فقط الإدمن الأساسي (أنت) يقدر يستخدم الأمر
+        await update.message.reply_text("❌ مش مسموح لك تستخدم الأمر ده! الإدمن الأساسي بس هو المسموح.")
+        return
+    
+    try:
+        user_to_allow = int(context.args[0])  # chat_id اللي عايز تضيفه
+        current_allowed = load_allowed_chat_ids()
+        if user_to_allow not in current_allowed:
+            current_allowed.append(user_to_allow)
+            save_allowed_chat_ids(current_allowed)
+            await update.message.reply_text(f"✅ تم إضافة {user_to_allow} لقائمة المسموح لهم!")
+        else:
+            await update.message.reply_text("⚠️ المستخدم ده موجود بالفعل في القائمة!")
+    except (IndexError, ValueError):
+        await update.message.reply_text("⚠️ استخدم الأمر صح: /allow <chat_id>")
+
+async def disallow_user(update: Update, context: CallbackContext) -> None:
+    chat_id = update.effective_chat.id
+    if chat_id != ADMIN_CHAT_ID:  # فقط الإدمن الأساسي (أنت) يقدر يستخدم الأمر
+        await update.message.reply_text("❌ مش مسموح لك تستخدم الأمر ده! الإدمن الأساسي بس هو المسموح.")
+        return
+    
+    try:
+        user_to_disallow = int(context.args[0])  # chat_id اللي عايز تشيله
+        current_allowed = load_allowed_chat_ids()
+        if user_to_disallow in current_allowed:
+            current_allowed.remove(user_to_disallow)
+            save_allowed_chat_ids(current_allowed)
+            await update.message.reply_text(f"✅ تم إزالة {user_to_disallow} من قائمة المسموح لهم!")
+        else:
+            await update.message.reply_text("⚠️ المستخدم ده مش موجود في القائمة!")
+    except (IndexError, ValueError):
+        await update.message.reply_text("⚠️ استخدم الأمر صح: /disallow <chat_id>")
