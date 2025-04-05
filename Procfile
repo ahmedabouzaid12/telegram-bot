@@ -1,1 +1,1 @@
-worker: python kasr.py
+worker: python main.py
