@@ -8,7 +8,7 @@ from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageH
 from datetime import datetime, date
 
 # إعدادات البوت
-TOKEN = "7690211912:AAGKR2tb3ygmsG7vhB4bf0sn5zFmc355KEg"
+TOKEN = "7615179073:AAGYJq5X8MmWULNegRNPE7s9Ql77o17myqE"
 session = requests.Session()
 
 # قيمة الحصة الثابتة
@@ -18,7 +18,7 @@ FIXED_QUOTA = 40
 user_data = {}
 
 # الأدمن (غير الـ ID ده بتاعك)
-ADMIN_ID = 1105434173  # حط الـ User ID بتاعك هنا
+ADMIN_ID = 1186288828  # حط الـ User ID بتاعك هنا
 
 # مسار ملف JSON لتخزين البيانات
 DATA_FILE = "bot_data.json"
