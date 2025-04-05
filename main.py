@@ -8,7 +8,7 @@ from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageH
 from datetime import datetime, date
 
 # إعدادات البوت
-TOKEN = TOKEN = os.getenv("TOKEN")
+TOKEN = "7690211912:AAGKR2tb3ygmsG7vhB4bf0sn5zFmc355KEg"
 session = requests.Session()
 
 # قيمة الحصة الثابتة
@@ -18,7 +18,7 @@ FIXED_QUOTA = 40
 user_data = {}
 
 # الأدمن (غير الـ ID ده بتاعك)
-ADMIN_ID = 1186288828  # حط الـ User ID بتاعك هنا
+ADMIN_ID = 1105434173  # حط الـ User ID بتاعك هنا
 
 # مسار ملف JSON لتخزين البيانات
 DATA_FILE = "bot_data.json"
@@ -28,6 +28,7 @@ def load_data():
     if os.path.exists(DATA_FILE):
         with open(DATA_FILE, 'r') as f:
             data = json.load(f)
+            # print(f"Loaded data: {data}")
             return set(data.get('allowed_users', [])), data.get('usage_stats', {})
     return set(), {}
 
@@ -98,7 +99,7 @@ def stats(update: Update, context: CallbackContext) -> None:
         return
     
     try:
-        target_user_id = int(context.args[0])
+        target_user_id = str(int(context.args[0]))
         today = str(date.today())
         if target_user_id in usage_stats and usage_stats[target_user_id]['date'] == today:
             count = usage_stats[target_user_id]['count']
@@ -151,7 +152,7 @@ def handle_message(update: Update, context: CallbackContext) -> None:
     
     if current_step == 'stats_input':  # معالجة إدخال الـ ID للإحصائيات
         try:
-            target_user_id = int(text)
+            target_user_id = str(int(text))
             today = str(date.today())
             if target_user_id in usage_stats and usage_stats[target_user_id]['date'] == today:
                 count = usage_stats[target_user_id]['count']
