@@ -8,7 +8,7 @@ from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageH
 from datetime import datetime, date
 
 # إعدادات البوت
-TOKEN = "7690211912:AAGKR2tb3ygmsG7vhB4bf0sn5zFmc355KEg"
+TOKEN = TOKEN = os.getenv("TOKEN")
 session = requests.Session()
 
 # قيمة الحصة الثابتة
