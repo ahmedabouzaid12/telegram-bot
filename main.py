@@ -9,7 +9,7 @@ import time
 import telegram.error
 
 # إعدادات البوت
-TOKEN = "7615179073:AAGYJq5X8MmWULNegRNPE7s9Ql77o17myqE"
+TOKEN = os.getenv("TOKEN")
 ADMIN_ID = 1105434173
 FIXED_QUOTA = 40
 
