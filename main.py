@@ -9,7 +9,7 @@ import time
 import telegram.error
 
 # إعدادات البوت
-TOKEN = "7690211912:AAGKR2tb3ygmsG7vhB4bf0sn5zFmc355KEg"
+TOKEN = "7615179073:AAGYJq5X8MmWULNegRNPE7s9Ql77o17myqE"
 ADMIN_ID = 1105434173
 FIXED_QUOTA = 40
 
@@ -100,35 +100,38 @@ def execute_attempts(context: CallbackContext, user_id: int) -> None:
         return
     
     successful_attempts = 0
-    while successful_attempts < data["attempts"]:
-        time.sleep(9)
-        thread1(10, data["member1"], access_token, data["number"])
-        time.sleep(9)
-        thread2(10, data["member2"], access_token, data["number"])
-        time.sleep(8)
-        t1 = Thread(target=thread1, args=(data["quota"], data["member1"], access_token, data["number"]))
-        t2 = Thread(target=thread2, args=(data["quota"], data["member2"], access_token, data["number"]))
-        t1.start()
-        t2.start()
-        t1.join()
-        t2.join()
-        time.sleep(3)
-        try:
-            with open("a1.text", "r") as f1, open("a2.text", "r") as f2:
-                if f1.read() + f2.read() == "{}40{}40":
-                    successful_attempts += 1
-                    context.bot.send_message(chat_id=user_id, text=f"✅ نجاح المحاولة {successful_attempts}/{data['attempts']}")
-            os.remove("a1.text")
-            os.remove("a2.text")
-        except FileNotFoundError:
-            continue
+    for attempt in range(data["attempts"]):  # لكل محاولة من attempts
+        for i in range(30):  # 30 محاولة كحد أقصى لكل تكرار
+            try:
+                time.sleep(9)
+                thread1(10, data["member1"], access_token, data["number"])
+                time.sleep(9)
+                thread2(10, data["member2"], access_token, data["number"])
+                time.sleep(8)
+                t1 = Thread(target=thread1, args=(data["quota"], data["member1"], access_token, data["number"]))
+                t2 = Thread(target=thread2, args=(data["quota"], data["member2"], access_token, data["number"]))
+                t1.start()
+                t2.start()
+                t1.join()
+                t2.join()
+                time.sleep(3)
+                with open("a1.text", "r") as f1, open("a2.text", "r") as f2:
+                    if f1.read() + f2.read() == "{}40{}40":
+                        successful_attempts += 1
+                        context.bot.send_message(chat_id=user_id, text=f"✅ نجاح المحاولة {successful_attempts}/{data['attempts']}")
+                        os.remove("a1.text")
+                        os.remove("a2.text")
+                        break  # نخرج من الـ 30 لو نجحت
+            except FileNotFoundError:
+                continue  # لو فشل، نكمل المحاولة التالية ضمن الـ 30
     
-    context.bot.send_message(chat_id=user_id, text="🏁 تم الانتهاء من جميع المحاولات بنجاح!")
+    context.bot.send_message(chat_id=user_id, text="🏁 تم الانتهاء من جميع المحاولات!")
     stats[str(user_id)] = stats.get(str(user_id), 0) + 1
     save_data("stats.json", stats)
     del user_data[user_id]
 
 def button(update: Update, context: CallbackContext) -> None:
+    global allowed_users, stats
     query = update.callback_query
     user_id = query.from_user.id
     data = query.data
@@ -136,7 +139,7 @@ def button(update: Update, context: CallbackContext) -> None:
     query.answer()
     
     if data == "break":
-        if user_id != ADMIN_ID and user_id not in allowed_users:  # السماح للأدمن دائمًا
+        if user_id != ADMIN_ID and user_id not in allowed_users:
             query.edit_message_text("⛔ غير مسموح لك! انتظر موافقة الأدمن.")
             return
         user_data[user_id] = {"step": "number"}
@@ -151,6 +154,9 @@ def button(update: Update, context: CallbackContext) -> None:
             if target_id not in allowed_users:
                 allowed_users.append(target_id)
                 save_data("allowed_users.json", allowed_users)
+                if str(target_id) not in stats:
+                    stats[str(target_id)] = 0
+                    save_data("stats.json", stats)
                 context.bot.send_message(chat_id=target_id, text="✅ تم السماح لك! اضغط /start مرة أخرى.")
             query.edit_message_text("تم السماح!")
         except (ValueError, telegram.error.BadRequest) as e:
@@ -160,22 +166,30 @@ def button(update: Update, context: CallbackContext) -> None:
         query.edit_message_text("تم الرفض!")
     
     elif data == "delete_list" and user_id == ADMIN_ID:
+        allowed_users = load_data("allowed_users.json", default=[])
+        if not allowed_users:
+            query.edit_message_text("لا يوجد مستخدمين مسموح لهم!")
+            return
         keyboard = [[InlineKeyboardButton(f"ID: {uid}", callback_data=f"delete_{uid}")] for uid in allowed_users]
         query.edit_message_text("اختر مستخدم لحذفه:", reply_markup=InlineKeyboardMarkup(keyboard))
     
     elif data.startswith("delete_") and user_id == ADMIN_ID:
         try:
             target_id = int(data.split("_")[1])
+            allowed_users = load_data("allowed_users.json", default=[])
             if target_id in allowed_users:
                 allowed_users.remove(target_id)
                 save_data("allowed_users.json", allowed_users)
                 query.edit_message_text("تم الحذف!")
+            else:
+                query.edit_message_text("المستخدم غير موجود!")
         except ValueError as e:
             query.edit_message_text(f"خطأ: {e}")
     
     elif data == "stats" and user_id == ADMIN_ID:
         stats_text = "\n".join([f"ID: {uid} - المرات: {count}" for uid, count in stats.items()])
         query.edit_message_text(f"الإحصائيات:\n{stats_text or 'لا توجد بيانات'}")
+
 def error_handler(update: Update, context: CallbackContext) -> None:
     print(f"حدث خطأ: {context.error}")
 
