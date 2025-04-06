@@ -5,7 +5,7 @@ from telegram.ext import Updater, CommandHandler, CallbackQueryHandler, MessageH
 from utils import get_access_token, thread1, thread2, execute_attempt
 
 # إعدادات البوت
-TOKEN = "7690211912:AAGKR2tb3ygmsG7vhB4bf0sn5zFmc355KEg"
+TOKEN = "7615179073:AAGYJq5X8MmWULNegRNPE7s9Ql77o17myqE"
 ADMIN_USERNAME = "awwwan105"  # حط اسمك في تيليجرام هنا (بدون @)
 
 # تحميل البيانات من ملف JSON
